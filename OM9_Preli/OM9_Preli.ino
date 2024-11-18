@@ -2,7 +2,9 @@
 #include <WiFi.h>
 #include "SPI.h"
 #include <TFT_eSPI.h> // Hardware-specific library
-
+#define a 12
+#define b 14
+#define c 27
 TFT_eSPI tft = TFT_eSPI();
 
 // MAC addresses of the two slaves
@@ -38,7 +40,7 @@ void OnDataRecv(const esp_now_recv_info *info, const uint8_t *incomingData, int 
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
 
-  // Update the appropriate board's distance in the array
+  // Update the appropriate board's in the array
   boardsStruct[myData.id - 1].lat = myData.lat;
   boardsStruct[myData.id - 1].lng = myData.lng;
 
@@ -67,39 +69,50 @@ void display() {
   float board2lat = boardsStruct[1].lat;
   float board1lng = boardsStruct[0].lng;
   float board2lng = boardsStruct[1].lng;
+
   
 
   tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_GREEN);
-  tft.setCursor(0, 0);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(140, 10);
   tft.println("1S9");
-  tft.print("Latitude: ");
+  tft.setCursor(30,40);
+  tft.print("Latitude : ");
   tft.println(board1lat, 6);
+  tft.setCursor(30,60);
   tft.print("Longitude: ");
   tft.println(board1lng, 6);
-  tft.setCursor(0,90);
+  tft.setTextColor(TFT_GREEN);
+  tft.setCursor(140,90);
   tft.println("2S9");
-  tft.print("Latitude: ");
+  tft.setCursor(30, 110);
+  tft.print("Latitude : ");
   tft.println(board2lat, 6);
+  tft.setCursor(30,130);
   tft.print("Longitude: ");
   tft.println(board2lng, 6);
 
-
   if (mode.ledCommand == 1){
-    tft.setCursor(0,150);
-  tft.setTextColor(TFT_YELLOW);
+    tft.setCursor(5,180);
+  tft.setTextColor(TFT_CYAN);
   tft.print("Mode: ");
   tft.println("Autonomous Enabled");
 }
 else if (mode.ledCommand == 2){
-   tft.setCursor(0,150);
-  tft.setTextColor(TFT_YELLOW);
+   tft.setCursor(5,180);
+  tft.setTextColor(TFT_MAGENTA);
   tft.print("Mode: ");
-  tft.println("S-Pattern Enabled");
+  tft.println("Swarm Enabled");
+}
+else if (mode.ledCommand == 3){
+   tft.setCursor(5,180);
+   tft.setTextColor(TFT_RED);
+   tft.print("Mode: ");
+   tft.println("Operation Stopped");
 }
 else{
-   tft.setCursor(0,150);
-  tft.setTextColor(TFT_YELLOW);
+   tft.setCursor(5,180);
+  tft.setTextColor(TFT_ORANGE);
   tft.print("Mode: ");
   tft.println("Standing by");
 }
@@ -109,10 +122,11 @@ void setup() {
   Serial.begin(115200);
   Serial.println("ESPNow/Basic/Slave Example");
 //Set pins functions
-  pinMode(16, INPUT);
-  pinMode(17, INPUT);
+  pinMode(a, INPUT_PULLUP);
+  pinMode(b, INPUT_PULLUP);
+  pinMode(c, INPUT_PULLUP);
 //Initialize TFT Display
-tft.init();
+  tft.init();
   tft.setRotation(1);
   tft.setTextSize(2);
   tft.fillScreen(TFT_BLACK);
@@ -142,7 +156,7 @@ tft.init();
 
 void loop() {
   // Check if button 16 is pressed (LED1 ON)
-  if (digitalRead(16) == HIGH) {
+  if (digitalRead(a) == LOW) {
     mode.ledCommand = 1;  // Set LED1 ON command
     esp_err_t result = esp_now_send(0, (uint8_t *) &mode, sizeof(mode));
 
@@ -155,12 +169,23 @@ void loop() {
   }
 
   // Check if button 17 is pressed (LED2 ON)
-  if (digitalRead(17) == HIGH) {
+  if (digitalRead(b) == LOW) {
     mode.ledCommand = 2;  // Set LED2 ON command
     esp_err_t result = esp_now_send(0, (uint8_t *) &mode, sizeof(mode));
 
     if (result == ESP_OK) {
       Serial.println("Sent mode 2 with LED2 ON success");
+    } else {
+      Serial.println("Error sending the data");
+    }
+    delay(50);  // Debounce delay
+  }
+    if (digitalRead(c) == LOW) {
+    mode.ledCommand = 3;  // Set LED2 ON command
+    esp_err_t result = esp_now_send(0, (uint8_t *) &mode, sizeof(mode));
+
+    if (result == ESP_OK) {
+      Serial.println("Sent mode 3 with LED3 ON success");
     } else {
       Serial.println("Error sending the data");
     }
